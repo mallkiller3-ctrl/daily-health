@@ -31,24 +31,7 @@ const App: React.FC = () => {
   const [logs, setLogs] = useState<DailyLog[]>(() => {
     const saved = localStorage.getItem('zenhealth_logs');
     if (saved) return JSON.parse(saved);
-    
-    const mockHistory: DailyLog[] = [];
-    for (let i = 30; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-      mockHistory.push({
-        date: dateStr,
-        weight: parseFloat((85.00 - (i * 0.23) + (Math.random() * 0.5)).toFixed(2)),
-        sleepHours: 7,
-        meals: [],
-        exercises: [],
-        skincare: { morning: false, evening: false },
-        mounjaroDose: false,
-        mounjaroNotes: ''
-      });
-    }
-    return mockHistory;
+    return []; // Start with empty logs instead of mock data
   });
 
   const [bodyChecks, setBodyChecks] = useState<BodyCheckPhoto[]>(() => {
@@ -68,7 +51,7 @@ const App: React.FC = () => {
   const todayDate = getTodayDate();
   const currentLog = logs.find(l => l.date === todayDate) || {
     date: todayDate,
-    weight: logs[logs.length - 1]?.weight || profile.currentWeight,
+    weight: logs.length > 0 ? logs[logs.length - 1].weight : profile.currentWeight,
     sleepHours: 7,
     meals: [],
     exercises: [],
@@ -88,8 +71,19 @@ const App: React.FC = () => {
     }
     setLogs(newLogs);
     
-    if (updatedLog.weight !== profile.currentWeight) {
-      setProfile({...profile, currentWeight: updatedLog.weight});
+    // Update profile current weight only if it's the most recent log
+    if (updatedLog.date === todayDate) {
+      setProfile(prev => ({...prev, currentWeight: updatedLog.weight}));
+    }
+  };
+
+  const resetAllData = () => {
+    if (window.confirm("모든 기록과 프로필 설정이 초기화됩니다. 계속하시겠습니까?")) {
+      localStorage.clear();
+      setProfile(INITIAL_PROFILE);
+      setLogs([]);
+      setBodyChecks([]);
+      setActiveTab('home');
     }
   };
 
@@ -121,8 +115,6 @@ const App: React.FC = () => {
             profile={profile} 
             dailyLog={currentLog} 
             history={logs}
-            onWeightChange={(w) => updateCurrentLog({ ...currentLog, weight: w })}
-            onQuickLog={(type) => type === 'mounjaro' && updateCurrentLog({ ...currentLog, mounjaroDose: !currentLog.mounjaroDose })}
           />
         );
       case 'logs':
@@ -131,7 +123,7 @@ const App: React.FC = () => {
         return (
           <div className="p-6 space-y-6 animate-in slide-in-from-right duration-300">
             <header className="flex justify-between items-center">
-              <h1 className="text-2xl font-bold">바디체크 갤러리</h1>
+              <h1 className="text-2xl font-bold">바디체크</h1>
               <label className="bg-indigo-600 text-white p-2 rounded-full shadow-lg cursor-pointer active:scale-95 transition-all">
                 <Camera size={20} />
                 <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
@@ -141,7 +133,7 @@ const App: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               {bodyChecks.length === 0 && (
                 <div className="col-span-2 py-20 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-3xl">
-                  첫 바디체크 사진을 업로드하세요
+                  첫 사진을 업로드하세요
                 </div>
               )}
               {bodyChecks.map(photo => (
@@ -164,7 +156,7 @@ const App: React.FC = () => {
       case 'stats':
         return <CoachChat profile={profile} logs={logs} />;
       case 'profile':
-        return <ProfileSettings profile={profile} onUpdate={setProfile} />;
+        return <ProfileSettings profile={profile} onUpdate={setProfile} onReset={resetAllData} />;
       default:
         return null;
     }
