@@ -2,9 +2,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { UserProfile, DailyLog } from "./types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const analyzeNutrition = async (foodDescription: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: `Analyze this food description and estimate the calories: "${foodDescription}". Return ONLY a JSON object with "name" and "calories" (integer).`,
@@ -23,6 +22,7 @@ export const analyzeNutrition = async (foodDescription: string) => {
 };
 
 export const getCoachResponse = async (profile: UserProfile, logs: DailyLog[], userMessage: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const age = new Date().getFullYear() - new Date(profile.birthDate).getFullYear();
   const bmi = profile.currentWeight / ((profile.height / 100) ** 2);
   
