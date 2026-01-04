@@ -23,7 +23,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, dailyLog, history }) => 
     return '비만';
   };
 
-  // Weight History logic based on months
+  // 기간별 일수 계산
   const rangeToDays = {
     '1m': 30,
     '2m': 60,
@@ -31,15 +31,23 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, dailyLog, history }) => 
     '4m': 120
   };
 
+  // 차트 데이터 가공
   const chartData = history.slice(-rangeToDays[chartRange]).map(log => ({
-    // Use MM/DD format for better readability over longer spans
+    // 기간이 길어지면 날짜 형식을 더 간결하게 (MM/DD)
     date: `${log.date.split('-')[1]}/${log.date.split('-')[2]}`,
     weight: parseFloat(log.weight.toFixed(2))
   }));
 
+  // X축 레이블이 너무 촘촘하게 표시되지 않도록 간격 계산
+  const getInterval = () => {
+    if (chartRange === '1m') return 6; // 약 일주일 단위
+    if (chartRange === '2m') return 13; // 약 2주일 단위
+    return 29; // 약 한 달 단위
+  };
+
   const totalCalories = dailyLog.meals.reduce((sum, meal) => sum + meal.calories, 0);
   
-  // Mounjaro Status Logic
+  // 마운자로 상태 계산
   const lastDoseLog = [...history].reverse().find(l => l.mounjaroDose);
   const daysSinceDose = lastDoseLog 
     ? Math.floor((new Date().getTime() - new Date(lastDoseLog.date).getTime()) / (1000 * 3600 * 24))
@@ -52,14 +60,14 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, dailyLog, history }) => 
           <h1 className="text-2xl font-bold text-slate-900">
             <span className="text-indigo-600">{profile.name}</span>님의 리포트
           </h1>
-          <p className="text-slate-500 text-xs">기록된 데이터를 기반으로 분석한 결과입니다.</p>
+          <p className="text-slate-500 text-xs">최근 {rangeToDays[chartRange]}일간의 데이터를 기반으로 분석합니다.</p>
         </div>
         <div className="bg-indigo-100 p-2 rounded-xl text-indigo-600">
           <Award size={24} />
         </div>
       </header>
 
-      {/* Mounjaro Status Info */}
+      {/* 마운자로 위젯 */}
       {profile.mounjaroActive && (
         <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-5 text-white shadow-lg space-y-4">
           <div className="flex justify-between items-center">
@@ -82,16 +90,18 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, dailyLog, history }) => 
             </div>
             <div className="h-10 w-px bg-white/20" />
             <div className="flex-1">
-              <p className="text-sm opacity-80 mb-1">상태</p>
-              <h2 className="text-xl font-bold">
-                {daysSinceDose !== null && daysSinceDose <= 7 ? '약효 지속 중' : '재투여 권장'}
+              <p className="text-sm opacity-80 mb-1">권장 사항</p>
+              <h2 className="text-sm font-bold leading-tight">
+                {daysSinceDose !== null && daysSinceDose <= 7 
+                  ? '현재 약효가 지속되는 시기입니다.' 
+                  : '투여 주기를 확인해주세요.'}
               </h2>
             </div>
           </div>
         </div>
       )}
 
-      {/* Health Stats Grid */}
+      {/* 주요 지표 */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 space-y-2">
           <div className="flex items-center gap-2 text-rose-500">
@@ -115,7 +125,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, dailyLog, history }) => 
         </div>
       </div>
 
-      {/* Weight Chart Section */}
+      {/* 체중 차트 섹션 */}
       <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 space-y-6">
         <div className="flex flex-col space-y-4">
           <div className="flex justify-between items-center">
@@ -142,7 +152,13 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, dailyLog, history }) => 
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="date" hide />
+                <XAxis 
+                  dataKey="date" 
+                  interval={getInterval()} 
+                  tick={{ fontSize: 10, fill: '#94a3b8' }}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <YAxis domain={['dataMin - 1', 'dataMax + 1']} hide />
                 <Tooltip 
                   contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
@@ -154,7 +170,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, dailyLog, history }) => 
                   dataKey="weight" 
                   stroke="#6366f1" 
                   strokeWidth={4} 
-                  dot={chartData.length < 31 ? { r: 3, fill: '#6366f1', strokeWidth: 0 } : false} 
+                  dot={chartData.length < 35 ? { r: 3, fill: '#6366f1', strokeWidth: 0 } : false} 
                   animationDuration={1000} 
                 />
               </LineChart>
@@ -162,7 +178,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, dailyLog, history }) => 
           </div>
         ) : (
           <div className="h-48 flex items-center justify-center text-slate-300 text-xs border-2 border-dashed border-slate-100 rounded-2xl">
-            데이터가 충분하지 않습니다
+            차트를 그리려면 최소 2일 이상의 기록이 필요합니다.
           </div>
         )}
         
@@ -181,7 +197,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, dailyLog, history }) => 
         </div>
       </div>
 
-      {/* Target Progress */}
+      {/* 목표 달성률 */}
       <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl relative overflow-hidden">
         <div className="relative z-10 flex justify-between items-center">
           <div>
@@ -195,7 +211,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, dailyLog, history }) => 
         <div className="mt-4 h-2 w-full bg-slate-800 rounded-full overflow-hidden">
           <div 
             className="h-full bg-indigo-500" 
-            style={{ width: `${Math.min(100, (profile.height - profile.currentWeight) / (profile.height - profile.targetWeight) * 100)}%` }}
+            style={{ width: `${Math.min(100, Math.max(0, (profile.currentWeight - profile.targetWeight) / profile.currentWeight * 100))}%` }}
           />
         </div>
       </div>
