@@ -1,0 +1,7 @@
+{
+  "name": "ZenHealth Pro - Personal Wellness Coach",
+  "description": "Comprehensive health tracker with AI-powered nutrition analysis, exercise monitoring, skincare coaching, and Mounjaro (Tirzepatide) management.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
